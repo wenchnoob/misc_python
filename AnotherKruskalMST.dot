@@ -1,0 +1,16 @@
+graph {
+   graph [nodesep=2, size="10,10"];
+    N0 [shape="box", style="rounded", label="0"];
+    N1 [shape="box", style="rounded", label="1"];
+    N2 [shape="box", style="rounded", label="2"];
+    N3 [shape="box", style="rounded", label="3"];
+    N4 [shape="box", style="rounded", label="4"];
+    N0 -- N1 [color=red,penwidth=3.0] [label="2"];
+    N0 -- N3 [color=red,penwidth=3.0] [label="6"];
+    N1 -- N2 [color=red,penwidth=3.0] [label="3"];
+    N1 -- N3 [label="8"];
+    N1 -- N4 [color=red,penwidth=3.0] [label="5"];
+    N2 -- N4 [label="7"];
+    N3 -- N4 [label="9"];
+    overlap=true;
+}
