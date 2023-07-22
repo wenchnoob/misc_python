@@ -51,4 +51,4 @@ if __name__ == '__main__':
             break
         interpreter = Interpreter(inp)
         result = interpreter.interpret()
-        print(result, end='')
+        print(result)

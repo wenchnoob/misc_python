@@ -9,7 +9,7 @@ def main():
                 break
             interpreter = Interpreter(inp)
             result = interpreter.interpret()
-            print(result, end='')
+            print(result)
 
 
 if __name__ == '__main__':

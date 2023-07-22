@@ -1,3 +1,14 @@
+'''
+Language
+
+PROGRAM -> ADD
+ADD -> MULT + ADD
+MULT -> PRIM * MULT
+PRIM -> - NUM | NUM | ( PROGRAM )
+NUM -> r'[0-9]+(\.[0-9]+)?'
+
+'''
+
 from calc.lexer import lexer
 from calc.lexer.lexer import Token
 
@@ -17,6 +28,9 @@ class Node:
         self.children = children
 
     def __str__(self):
+        return str(self.val)
+
+    def __repr__(self):
         return self._rec_str(0)
 
     def _rec_str(self, d):
@@ -46,7 +60,7 @@ class RDParser:
                  or self._lookahead.token_type == Token.Type.MINUS):
             lhs = Node(Node.Type.PLUS
                        if self._eat().token_type == Token.Type.PLUS
-                       else Node.Type.MINUS, None, [lhs, self._mult()])
+                       else Node.Type.MINUS, None, [lhs, self._add()])
         return lhs
 
     def _mult(self):
@@ -59,7 +73,7 @@ class RDParser:
                  or self._lookahead.token_type == Token.Type.DIV):
             lhs = Node(Node.Type.TIMES
                        if self._eat().token_type == Token.Type.TIMES
-                       else Node.Type.DIV, None, [lhs, self._primitive()])
+                       else Node.Type.DIV, None, [lhs, self._mult()])
         return lhs
 
     def _primitive(self):
@@ -68,7 +82,7 @@ class RDParser:
 
         if self._lookahead.token_type == Token.Type.MINUS:
             self._eat()
-            return Node(Node.Type.NEGATE, None,  [self._primitive()])
+            return Node(Node.Type.NEGATE, None, [self._primitive()])
         elif self._lookahead.token_type == Token.Type.NUMERIC:
             return Node(Node.Type.NUMERIC, int(self._eat().val))
         elif self._lookahead.token_type == Token.Type.LPAREN:
@@ -94,6 +108,6 @@ if __name__ == '__main__':
     parser = None
     while True:
         parser = RDParser(input('> '))
-        print(parser.program())
+        print(parser.program().__repr__(), end='')
 
 # 12 * -2 + 4 - 3
