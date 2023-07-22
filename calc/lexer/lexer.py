@@ -8,6 +8,8 @@ class Token:
         MINUS = 'MINUS'
         TIMES = 'TIMES'
         DIV = 'DIV'
+        LPAREN = 'LPAREN'
+        RPAREN = 'RPAREN'
 
     def __init__(self, token_type, val=''):
         match token_type:
@@ -19,14 +21,18 @@ class Token:
                 val = '*'
             case Token.Type.DIV:
                 val = '/'
+            case Token.Type.LPAREN:
+                val = '('
+            case Token.Type.RPAREN:
+                val = ')'
         self.token_type = token_type
         self.val = int(val) if token_type == Token.Type.NUMERIC else val
 
     def __str__(self):
-        return f'({self.token_type}, {self.val})'
+        return self.val
 
     def __repr__(self):
-        return self.__str__()
+        return f'(type={self.token_type}, val={self.val})'
 
     def __hash__(self):
         return hash(self)
@@ -42,6 +48,8 @@ class RegexLexer():
         (re.compile(r'-'), Token.Type.MINUS),
         (re.compile(r'\*'), Token.Type.TIMES),
         (re.compile(r'/'), Token.Type.DIV),
+        (re.compile(r'\('), Token.Type.LPAREN),
+        (re.compile(r'\)'), Token.Type.RPAREN),
         (re.compile(r'\s'), None)
     ]
 
@@ -50,6 +58,9 @@ class RegexLexer():
         self.text = text
 
     def next_token(self):
+        if self.cursor >= len(self.text):
+            return None
+
         for pattern in RegexLexer._PATTERNS:
             m = pattern[0].match(self.text, self.cursor)
             if m is not None:
@@ -58,7 +69,9 @@ class RegexLexer():
                     return self.next_token()
                 return Token(pattern[1], m.group())
 
+        msg = f'Unexpected character: {self.text[self.cursor]}'
         self.cursor = len(self.text)
+        raise RuntimeError(msg)
 
     def tokens(self):
         tokens = []

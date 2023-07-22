@@ -45,7 +45,6 @@ class Interpreter:
 
 
 if __name__ == '__main__':
-    interpreter = None
     while True:
         inp = input('> ')
         if inp == 'exit':

@@ -9,12 +9,14 @@ class LexerTest(unittest.TestCase):
         pass
 
     def test_regex_lexes_expr(self):
-        tokens = lexer.RegexLexer("3 * 5 + 4 / 2 - 1").tokens()
+        tokens = lexer.RegexLexer("3 * (5 + 4) / 2 - 1").tokens()
         expected = [Token(Token.Type.NUMERIC, '3'),
                     Token(Token.Type.TIMES, '*'),
+                    Token(Token.Type.LPAREN, '('),
                     Token(Token.Type.NUMERIC, '5'),
                     Token(Token.Type.PLUS, '+'),
                     Token(Token.Type.NUMERIC, '4'),
+                    Token(Token.Type.RPAREN, ')'),
                     Token(Token.Type.DIV, '/'),
                     Token(Token.Type.NUMERIC, '2'),
                     Token(Token.Type.MINUS, '-'),

@@ -71,14 +71,21 @@ class RDParser:
             return Node(Node.Type.NEGATE, None,  [self._primitive()])
         elif self._lookahead.token_type == Token.Type.NUMERIC:
             return Node(Node.Type.NUMERIC, int(self._eat().val))
+        elif self._lookahead.token_type == Token.Type.LPAREN:
+            self._eat(Token.Type.LPAREN)
+            res = self.program()
+            self._eat(Token.Type.RPAREN)
+            return res
         else:
-            raise RuntimeError(f'Unxpected token: {self._lookahead}')
+            raise RuntimeError(f'Unxepected token: {self._lookahead}')
 
     def _next(self):
         self._lookahead = self._lexer.next_token()
 
-    def _eat(self):
+    def _eat(self, expected=None):
         ret = self._lookahead
+        if expected is not None and self._lookahead.token_type != expected:
+            raise RuntimeError(f'Unexpected token: {self._lookahead}')
         self._next()
         return ret
 
