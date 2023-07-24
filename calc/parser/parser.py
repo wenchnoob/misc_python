@@ -1,11 +1,13 @@
 '''
 Language
 
-PROGRAM -> ADD
+PROGRAM -> ASSIGN
+ASSIGN -> VARIABLE = ADD | ADD
 ADD -> MULT + ADD
 MULT -> PRIM * MULT
 PRIM -> - NUM | NUM | ( PROGRAM )
 NUM -> r'[0-9]+(\.[0-9]+)?'
+VARIABLE
 
 '''
 
@@ -13,16 +15,24 @@ from calc.lexer import lexer
 from calc.lexer.lexer import Token
 
 
+class UnexpectedEOF(EOFError):
+    pass
+
+
 class Node:
     class Type:
+        VARIABLE = 'VARIABLE'
         NUMERIC = 'NUMERIC'
         PLUS = 'PLUS'
         MINUS = 'MINUS'
         TIMES = 'TIMES'
         DIV = 'DIV'
         NEGATE = 'NEGATE'
+        ASSIGN = 'ASSIGN'
 
-    def __init__(self, type, val, children=[]):
+    def __init__(self, type, val, children=None):
+        if children is None:
+            children = []
         self.type = type
         self.val = val
         self.children = children
@@ -47,7 +57,22 @@ class RDParser:
         self._lookahead = self._lexer.next_token()
 
     def program(self):
-        return self._add()
+        return self._assign()
+
+    def _assign(self):
+        if self._lookahead is None:
+            raise RuntimeError('Unexpected EOF')
+
+        if self._lookahead.token_type == Token.Type.VARIABLE:
+            _id = Node(Node.Type.VARIABLE, self._eat(Token.Type.VARIABLE).val)
+            try:
+                self._eat(Token.Type.ASSIGN)
+            except UnexpectedEOF:
+                return _id
+            rhs = self._add()
+            return Node(Node.Type.ASSIGN, None, [_id, rhs])
+        else:
+            return self._add()
 
     def _add(self):
         if self._lookahead is None:
@@ -84,7 +109,9 @@ class RDParser:
             self._eat()
             return Node(Node.Type.NEGATE, None, [self._primitive()])
         elif self._lookahead.token_type == Token.Type.NUMERIC:
-            return Node(Node.Type.NUMERIC, int(self._eat().val))
+            return Node(Node.Type.NUMERIC, self._eat().val)
+        elif self._lookahead.token_type == Token.Type.VARIABLE:
+            return Node(Node.Type.VARIABLE, self._eat().val)
         elif self._lookahead.token_type == Token.Type.LPAREN:
             self._eat(Token.Type.LPAREN)
             res = self.program()
@@ -98,6 +125,8 @@ class RDParser:
 
     def _eat(self, expected=None):
         ret = self._lookahead
+        if self._lookahead is None:
+            raise UnexpectedEOF(f'Unexpected end of input')
         if expected is not None and self._lookahead.token_type != expected:
             raise RuntimeError(f'Unexpected token: {self._lookahead}')
         self._next()

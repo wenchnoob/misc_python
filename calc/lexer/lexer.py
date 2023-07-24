@@ -1,8 +1,8 @@
 import re
 
-
 class Token:
     class Type:
+        VARIABLE = 'VARIABLE'
         NUMERIC = 'NUMERIC'
         PLUS = 'PLUS'
         MINUS = 'MINUS'
@@ -10,6 +10,7 @@ class Token:
         DIV = 'DIV'
         LPAREN = 'LPAREN'
         RPAREN = 'RPAREN'
+        ASSIGN = 'ASSIGN'
 
     def __init__(self, token_type, val=''):
         match token_type:
@@ -25,6 +26,8 @@ class Token:
                 val = '('
             case Token.Type.RPAREN:
                 val = ')'
+            case Token.Type.ASSIGN:
+                val = '='
         self.token_type = token_type
         self.val = int(val) if token_type == Token.Type.NUMERIC else val
 
@@ -43,6 +46,7 @@ class Token:
 
 class RegexLexer():
     _PATTERNS = [
+        (re.compile(r'[_A-z]+[_A-z0-9]*'), Token.Type.VARIABLE),
         (re.compile(r'[0-9]+(\.[0-9]+)?'), Token.Type.NUMERIC),
         (re.compile(r'\+'), Token.Type.PLUS),
         (re.compile(r'-'), Token.Type.MINUS),
@@ -50,6 +54,7 @@ class RegexLexer():
         (re.compile(r'/'), Token.Type.DIV),
         (re.compile(r'\('), Token.Type.LPAREN),
         (re.compile(r'\)'), Token.Type.RPAREN),
+        (re.compile(r'='), Token.Type.ASSIGN),
         (re.compile(r'\s'), None)
     ]
 
