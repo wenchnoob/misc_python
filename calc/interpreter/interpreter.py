@@ -1,10 +1,12 @@
 from calc.parser import parser
-from calc.parser.parser import Node
+from calc.parser.parser import Node, UnexpectedEOF
 
 _lookup_table = {}
 
+
 def _preload():
     _lookup_table['vars'] = []
+
 
 def _add_var(node):
     lhs = node.children[0]
@@ -13,6 +15,7 @@ def _add_var(node):
     if 'vars' in _lookup_table and isinstance(_lookup_table['vars'], list):
         _lookup_table['vars'].append(lhs.val)
     return _lookup_table[lhs.val]
+
 
 def _get_var(node):
     # if node.val == 'vars':
@@ -25,18 +28,31 @@ def _get_var(node):
         raise NameError(f'Unknown variable: {node.val}')
     return _lookup_table[node.val]
 
+
 def _bin_op(node):
     lhs = _interpret(node.children[0]).val
     rhs = _interpret(node.children[1]).val
     match node.type:
         case Node.Type.PLUS:
-            return lhs + rhs
+            return Node.Type.NUMERIC, lhs + rhs
         case Node.Type.MINUS:
-            return lhs - rhs
+            return Node.Type.NUMERIC, lhs - rhs
         case Node.Type.TIMES:
-            return lhs * rhs
+            return Node.Type.NUMERIC, lhs * rhs
         case Node.Type.DIV:
-            return lhs / rhs
+            return Node.Type.NUMERIC, lhs / rhs
+        case Node.Type.LT:
+            return Node.Type.BOOL, lhs < rhs
+        case Node.Type.GT:
+            return Node.Type.BOOL, lhs > rhs
+        case Node.Type.LTEQ:
+            return Node.Type.BOOL, lhs <= rhs
+        case Node.Type.GTEQ:
+            return Node.Type.BOOL, lhs >= rhs
+        case Node.Type.EQ:
+            return Node.Type.BOOL, lhs == rhs
+        case Node.Type.NOTEQ:
+            return Node.Type.BOOL, lhs != rhs
         case _:
             raise RuntimeError(f'Unsupported node type {node.type}, how did this happen? :)')
 
@@ -49,10 +65,15 @@ def _interpret(node):
             return _get_var(node)
         case Node.Type.NUMERIC:
             return node
+        case Node.Type.BOOL:
+            return node
         case Node.Type.NEGATE:
             return Node(Node.Type.NUMERIC, _interpret(node.children[0]).val * -1)
-        case Node.Type.PLUS | Node.Type.MINUS | Node.Type.TIMES | Node.Type.DIV:
-            return Node(Node.Type.NUMERIC, _bin_op(node))
+        case Node.Type.NOT:
+            return Node(Node.Type.BOOL, not _interpret(node.children[0]).val)
+        case (Node.Type.PLUS | Node.Type.MINUS | Node.Type.TIMES | Node.Type.DIV
+              | Node.Type.LT | Node.Type.GT | Node.Type.LTEQ | Node.Type.GTEQ | Node.Type.EQ | Node.Type.NOTEQ):
+            return Node(*_bin_op(node))
         case _:
             raise RuntimeError(f'Unsupported node type {node.type}')
 
@@ -71,6 +92,9 @@ if __name__ == '__main__':
         inp = input('> ')
         if inp == 'exit':
             break
-        interpreter = Interpreter(inp)
-        result = interpreter.interpret()
-        print(result)
+        try:
+            interpreter = Interpreter(inp)
+            result = interpreter.interpret()
+            print(result)
+        except (UnexpectedEOF, RuntimeError, NameError) as e:
+            print(e)

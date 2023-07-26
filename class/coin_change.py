@@ -24,12 +24,9 @@ def merge(mp1, mp2):
             mp[key] = mp2[key]
 
     return mp
-    print(mp)
 
 
 def solve(value, memo):
-    # print(value)
-    # print(colors)
 
     if value < 0:
         return None
@@ -71,7 +68,7 @@ def solve(value, memo):
     return res
 
 
-value = 10
+value = 100000
 memo = {}
 print(solve(value, memo))
 

@@ -2,7 +2,9 @@
 Language
 
 PROGRAM -> ASSIGN
-ASSIGN -> VARIABLE = ADD | ADD
+ASSIGN -> VARIABLE = RELATIONAL_EXPRESSION | RELATIONAL_EXPRESSION
+EQUALITY_EXPRESSION -> RELATIONAL_EXPRESSION ( == | != ) RELATIONAL_EXPRESSION
+RELATIONAL_EXPRESSION -> ADD ( < | <= | >= | > ) ADD
 ADD -> MULT + ADD
 MULT -> PRIM * MULT
 PRIM -> - NUM | NUM | ( PROGRAM )
@@ -29,6 +31,14 @@ class Node:
         DIV = 'DIV'
         NEGATE = 'NEGATE'
         ASSIGN = 'ASSIGN'
+        LT = 'LT'
+        GT = 'GT'
+        EQ = 'EQ'
+        LTEQ = 'LTEQ'
+        GTEQ = 'GTEQ'
+        NOTEQ = 'NOTEQ'
+        NOT = 'NOT'
+        BOOL = 'BOOL'
 
     def __init__(self, type, val, children=None):
         if children is None:
@@ -65,14 +75,59 @@ class RDParser:
 
         if self._lookahead.token_type == Token.Type.VARIABLE:
             _id = Node(Node.Type.VARIABLE, self._eat(Token.Type.VARIABLE).val)
-            try:
+
+            if self._lookahead is not None and self._lookahead.token_type == Token.Type.ASSIGN:
                 self._eat(Token.Type.ASSIGN)
-            except UnexpectedEOF:
+                rhs = self._assign()
+                return Node(Node.Type.ASSIGN, None, [_id, rhs])
+            elif self._lookahead is None:
                 return _id
-            rhs = self._add()
-            return Node(Node.Type.ASSIGN, None, [_id, rhs])
+            else:
+                self._backtrack()
+                return self._equality_expression()
         else:
-            return self._add()
+            return self._equality_expression()
+
+    def _equality_expression(self):
+        if self._lookahead is None:
+            raise RuntimeError('Unexpected EOF')
+
+        lhs = self._relation_expression()
+
+        while self._lookahead is not None and \
+                (self._lookahead.token_type == Token.Type.EQ
+                 or self._lookahead.token_type == Token.Type.NOTEQ):
+            lhs = Node(Node.Type.EQ
+                       if self._eat().token_type == Token.Type.EQ
+                       else Node.Type.NOTEQ, None, [lhs, self._relation_expression()])
+        return lhs
+
+    def _relation_expression(self):
+        if self._lookahead is None:
+            raise RuntimeError('Unexpected EOF')
+
+        lhs = self._add()
+
+        while self._lookahead is not None and \
+                (self._lookahead.token_type == Token.Type.LT
+                 or self._lookahead.token_type == Token.Type.GT
+                 or self._lookahead.token_type == Token.Type.LTEQ
+                 or self._lookahead.token_type == Token.Type.GTEQ):
+            cur_token = self._eat()
+            match cur_token.token_type:
+                case Token.Type.LT:
+                    lhs = Node(Node.Type.LT, None, [lhs, self._add()])
+                case Token.Type.GT:
+                    lhs = Node(Node.Type.GT, None, [lhs, self._add()])
+                case Token.Type.LTEQ:
+                    lhs = Node(Node.Type.LTEQ, None, [lhs, self._add()])
+                case Token.Type.GTEQ:
+                    lhs = Node(Node.Type.GTEQ, None, [lhs, self._add()])
+                case _:
+                    raise RuntimeError('How did this even happen? :/')
+
+        return lhs
+
 
     def _add(self):
         if self._lookahead is None:
@@ -108,19 +163,32 @@ class RDParser:
         if self._lookahead.token_type == Token.Type.MINUS:
             self._eat()
             return Node(Node.Type.NEGATE, None, [self._primitive()])
+        elif self._lookahead.token_type == Token.Type.NOT:
+            self._eat()
+            return Node(Node.Type.NOT, None, [self._primitive()])
         elif self._lookahead.token_type == Token.Type.NUMERIC:
             return Node(Node.Type.NUMERIC, self._eat().val)
         elif self._lookahead.token_type == Token.Type.VARIABLE:
             return Node(Node.Type.VARIABLE, self._eat().val)
+        elif (self._lookahead.token_type == Token.Type.TRUE
+              or self._lookahead.token_type == Token.Type.FALSE):
+            return Node(Node.Type.BOOL, self._eat().val)
         elif self._lookahead.token_type == Token.Type.LPAREN:
             self._eat(Token.Type.LPAREN)
             res = self.program()
             self._eat(Token.Type.RPAREN)
             return res
         else:
-            raise RuntimeError(f'Unxepected token: {self._lookahead}')
+            raise RuntimeError(f'Unexpected token: {self._lookahead.__repr__()}')
 
     def _next(self):
+        self._lookahead = self._lexer.next_token()
+
+    def _backtrack(self):
+        # our current lookahead, is already consumed by the lexer
+        # so to get our previous look ahead we have to go back two (2)
+        # previous tokens
+        self._lexer.backtrack(2)
         self._lookahead = self._lexer.next_token()
 
     def _eat(self, expected=None):
@@ -128,7 +196,7 @@ class RDParser:
         if self._lookahead is None:
             raise UnexpectedEOF(f'Unexpected end of input')
         if expected is not None and self._lookahead.token_type != expected:
-            raise RuntimeError(f'Unexpected token: {self._lookahead}')
+            raise RuntimeError(f'Unexpected token: {self._lookahead.__repr__()}')
         self._next()
         return ret
 
