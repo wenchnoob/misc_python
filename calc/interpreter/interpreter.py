@@ -97,4 +97,4 @@ if __name__ == '__main__':
             result = interpreter.interpret()
             print(result)
         except (UnexpectedEOF, RuntimeError, NameError) as e:
-            print(e)
+            print(e.__repr__())

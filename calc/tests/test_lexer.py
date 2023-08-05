@@ -3,7 +3,7 @@ from calc.lexer.lexer import Token
 import unittest
 
 
-class LexerTest(unittest.TestCase):
+class TestLexer(unittest.TestCase):
 
     def setUp(self):
         pass
